@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Aftermath Crafting Recipes</title>
+		<style>
+			.datagrid table { border-collapse: collapse; text-align: left; width: 100%; } .datagrid {font: normal 12px/150% Arial, Helvetica, sans-serif; background: #fff; overflow: hidden; border: 3px solid #991821; -webkit-border-radius: 12px; -moz-border-radius: 12px; border-radius: 12px; }.datagrid table td, .datagrid table th { padding: 11px 9px; }.datagrid table thead th {background:-webkit-gradient( linear, left top, left bottom, color-stop(0.05, #991821), color-stop(1, #80141C) );background:-moz-linear-gradient( center top, #991821 5%, #80141C 100% );filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#991821', endColorstr='#80141C');background-color:#991821; color:#FFFFFF; font-size: 15px; font-weight: bold; border-left: 2px solid #B01C26; } .datagrid table thead th:first-child { border: none; }.datagrid table tbody td { color: #80141C; border-left: 2px solid #402F2F;font-size: 14px;font-weight: normal; }.datagrid table tbody .alt td { background: #F7E2E1; color: #80141C; }.datagrid table tbody td:first-child { border-left: none; }.datagrid table tbody tr:last-child td { border-bottom: none; }
+
+			.container {
+				font: normal 12px/150% Arial, Helvetica, sans-serif;
+				width: 1000px;
+				margin-right: auto;
+				margin-left: auto;
+			}
+		</style>
+		<script>
+			/**
+			* simple function to make a request and get the text back
+			*
+			* ex:
+			* request('/foobar.txt', function(err, text, xhr) {
+			*   console.log(text);
+			* });
+			*/
+			function request(uri, method, data, headers, cb) {
+				if (typeof method === 'function') {
+					cb = method;
+					method = undefined;
+				}
+
+				if (typeof data === 'function') {
+					cb = data;
+					data = undefined;
+				}
+
+				if (typeof headers === 'function') {
+					cb = headers;
+					headers = undefined;
+				}
+
+				method = method || 'GET';
+				headers = headers || {};
+
+				var xhr = new XMLHttpRequest();
+				xhr.onreadystatechange = function() {
+					var e;
+
+					if (xhr.readyState !== 4)
+					return;
+
+					if (xhr.status !== 200) {
+						e = new Error('request failed');
+						e.xhr = xhr;
+						cb(e);
+						return;
+					}
+
+					cb(null, xhr.responseText, xhr);
+				};
+
+				xhr.open(method, uri, true);
+				Object.keys(headers).forEach(function(header) {
+					xhr.setRequestHeader(header, headers[header]);
+				});
+				xhr.send(data);
+
+				return xhr;
+			}
+
+			/**
+			 * completely unscalable object cloning
+			 */
+			 function clone(o) {
+				 return JSON.parse(JSON.stringify(o));
+			 }
+
+			/**
+			 * parsing the crafting.txt database file format
+			 */
+			function parse(txt) {
+				var lines = txt.trim().split('\n');
+				var items = [];
+				var curitem;
+				lines.forEach(function(line) {
+					// skip comments and blank lines
+					if (/^(\s*|#.*)$/.test(line))
+						return;
+
+					// check for resource information
+					if (/^-/.test(line)) {
+						var l = line.substr(2); // chop off the hyphen
+						var ind = l.indexOf(' ');
+						var amount = parseInt(l.substr(0, ind), 10);
+						var resource = l.substr(ind + 1);
+						curitem.resources[resource] = amount;
+						return;
+					}
+
+					// new item
+					if (curitem) {
+						var names = curitem.name.split('|');
+						names.forEach(function(name) {
+							var o = clone(curitem);
+							o.name = name;
+							items.push(o);
+						});
+					}
+					curitem = {
+						name: line,
+						resources: {}
+					};
+				});
+				return items;
+			}
+
+			window.addEventListener('load', main);
+			function main() {
+				request('./crafting.txt', function(err, txt) {
+					var tr;
+
+					if (err)
+						return alert(err.message);
+
+					// parse the crafting database
+					var items = parse(txt);
+
+					// extract ALL possible resources
+					var resources = [];
+					items.forEach(function(item) {
+						Object.keys(item.resources).forEach(function(resource) {
+							if (resources.indexOf(resource) < 0)
+								resources.push(resource);
+						});
+					});
+					// resources.sort();
+
+					// make the table header now that we have resources
+					tr = document.getElementById('thead').getElementsByTagName('tr')[0];
+					resources.forEach(function(resource) {
+						var th = document.createElement('th');
+						th.textContent = resource;
+						tr.appendChild(th);
+					});
+
+					// make the table body
+					tbody.innerHTML = '';
+					var alt = false;
+					items.forEach(function(item) {
+						var tr = document.createElement('tr');
+						if (alt)
+							tr.className = 'alt';
+						alt = !alt;
+						var td;
+						td = document.createElement('td');
+						td.textContent = item.name;
+						tr.appendChild(td);
+
+						// make a td for each resource in order
+						var resources_tds = [];
+						resources.forEach(function(resource) {
+							var td = document.createElement('td');
+							td.textContent = '0';
+							tr.appendChild(td);
+							resources_tds.push(td);
+						});
+
+						// fill up the table
+						Object.keys(item.resources).forEach(function(resource) {
+							var amount = item.resources[resource];
+							var index = resources.indexOf(resource);
+							resources_tds[index].textContent = '' + amount;
+						});
+
+						tbody.appendChild(tr);
+					});
+				});
+			}
+
+		</script>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Aftermath Crafting Recipes</h1>
+			<p>
+				Community-driven list of <a href="http://willyousurvive.com">Aftermath</a> structures and crafting resources required
+			</p>
+			<p>
+				To update or fix the data seen here open an issue or pull request on the GitHub repository
+				for this - <a href="https://github.com/bahamas10/aftermath-crafting">https://github.com/bahamas10/aftermath-crafting</a>
+			</p>
+			<hr />
+			<div class="datagrid">
+				<table>
+					<thead id="thead">
+						<tr><th>Name</th></tr>
+					</thead>
+					<tbody id="tbody">
+						<tr><td>Loading...</td></tr>
+					</tbody>
+				</table>
+			</div>
+			<hr />
+			<small>Created by <a href="https://github.com/bahamas10">bahamas10</a></small>
+		</div>
+		<a href="https://github.com/bahamas10/aftermath-crafting"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
+	</body>
+</html>
