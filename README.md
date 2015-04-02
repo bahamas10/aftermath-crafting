@@ -6,6 +6,12 @@ the game [Aftermath](http://www.willyousurvive.com/)
 
 View the site http://bahamas10.github.io/aftermath-crafting
 
+Updates / Modifications
+-----------------------
+
+To update or modify any of the data on the site, simply make updates to
+[crafting.txt](/crafting.txt).
+
 License / Copyright
 -------------------
 
