@@ -59,7 +59,7 @@ Small Survival Shack
 
 Fortified Strongbox
 - 35 parts
-- 35 tools
+- 5 tools
 - 35 wood
 - 35 metal
 - 35 plastic
